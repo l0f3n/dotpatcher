@@ -19,9 +19,13 @@ subcmd__apply() {
   done
 }
 
-subcmd__discard() {
+subcmd__reset() {
   find "$TMP" -type f | while read -r file; do
     relfile="${file#"$TMP/"}"
+
+    if diff -q "$TMP/$relfile" "$TARGETDIR/$relfile" >/dev/null; then
+      continue
+    fi
 
     echo "Reverting changes to $relfile..."
     mv "$TMP/$relfile" "$TARGETDIR/$relfile"
@@ -30,7 +34,7 @@ subcmd__discard() {
 
 subcmd__edit() {
   while [[ $# -gt 0 ]]; do
-    relpath="${1#$TARGETDIR}/"
+    relpath="${1#$TARGETDIR/}"
 
     find "$TARGETDIR/$relpath" -type f | while read -r file; do
       relfile="${file#"$TARGETDIR/"}"
@@ -39,7 +43,7 @@ subcmd__edit() {
         continue
       fi
 
-      echo "Copying: $relfile"
+      echo "Saving: $relfile"
       mkdir -p "$TMP/$(dirname $relfile)"
       cp "$file" "$TMP/$relfile"
     done
@@ -48,7 +52,7 @@ subcmd__edit() {
   done
 }
 
-subcmd__save() {
+subcmd__finish() {
   find "$TMP" -type f | while read -r file; do
     relfile="${file#"$TMP/"}"
     filediff="$(diff "$TMP/$relfile" "$TARGETDIR/$relfile")"
@@ -70,13 +74,13 @@ print_help() {
   cat <<EOF
 dotpatcher - create and manage patches to dotfiles
 
-Usage: $0 [SUBCOMMAND] [OPTION]...
+Usage: dotpatcher.sh [SUBCOMMAND] [OPTION]...
 
 Subcommands:
   apply           Applies stored patches to files
   edit [path]...  Edit files in path(s)
-  discard         Discard current edits
-  save            Save current edits as patches
+  reset           Discard current edits
+  finish          Save current edits as patches
 
 Flags:
   -t, --targetdir DIR   Directory to apply patches (default: $HOME)
