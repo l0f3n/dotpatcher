@@ -5,6 +5,11 @@ TMP="$WORKDIR/tmp"
 TARGETDIR="$HOME"
 SUFFIX="patch"
 
+# TODO: Like gnu stow, add support for different workspaces. i.e. all commands should take
+# an additional positional parameters that creates that subdir for everything. Then patches
+# to similar things can be applied together, like edit Hyprdots, apply Hyprdots, etc. Or
+# something like edit Asus, apply Asus if you have machine specific configuration
+
 subcmd__apply() {
   find "$WORKDIR" -type f -name "*.$SUFFIX" | while read -r file; do
     relfile="${file#"$WORKDIR/"}"
@@ -38,14 +43,20 @@ subcmd__edit() {
 
     find "$TARGETDIR/$relpath" -type f | while read -r file; do
       relfile="${file#"$TARGETDIR/"}"
+      tmpfile="$TMP/$relfile"
 
-      if [ -f "$TMP/$relfile" ]; then
+      if [ -f "$tmpfile" ]; then
         continue
       fi
 
       echo "Saving: $relfile"
       mkdir -p "$TMP/$(dirname $relfile)"
-      cp "$file" "$TMP/$relfile"
+      cp "$file" "$tmpfile"
+
+      patchfile="$WORKDIR/$relfile.$SUFFIX"
+      if [ -f "$patchfile" ]; then
+        patch -R -s "$tmpfile" "$patchfile"
+      fi
     done
 
     shift
